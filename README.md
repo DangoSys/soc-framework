@@ -7,3 +7,10 @@ Chipyard `DigitalTop` / config / IOBinder / harness layer extracted from [Chipya
 **TapeoutSimConfig** extends that with pad-connected SPI flash simulation (`+spiflash0=`) via `WithSimSPIFlashOnPads` and `WithSimSPIIOCells`. Use it as the pad-level VCS/Verilator sim target.
 
 SystemVerilog pad models live in `src/main/resources/vsrc/` (`SimI2CEepromModel.sv`, `SimSPIFlashPadModel.sv`).
+
+**Tests** live in `tests/`, same CMake + `add_*_ctests` shape as buckyball `bb-tests` (not Bazel, not the Chipyard applications/tests Makefile). Pad smokes: `i2c_eeprom_test`, `spi_flash_test` against `TapeoutSimConfig`.
+
+```
+cmake -S tests -B tests/build
+cmake --build tests/build --target pad-ctests-build
+```

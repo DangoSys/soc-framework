@@ -1,7 +1,7 @@
 package chipyard
 
 import org.chipsalliance.cde.config.Config
-import testchipip.soc.MBUS
+import freechips.rocketchip.subsystem.{ExtMem, MBUS}
 
 /**
  * Tapeout target based on the current chip-like Rocket configuration.
@@ -55,10 +55,14 @@ class WithSerialConnect extends Config(
   new testchipip.serdes.WithSerialTLMem(size = BigInt("10000000", 16)) ++
   new testchipip.serdes.WithSerialTLPHYParams(
     testchipip.serdes.DecoupledExternalSyncSerialPhyParams(phitWidth = 4, flitWidth = 16)) ++
-  new chipyard.config.WithSerialTLBackingMemory ++
+  new WithSerialTLBackingMemory ++
   new testchipip.soc.WithOffchipBusClient(MBUS) ++
   new testchipip.soc.WithOffchipBus
 )
+
+class WithSerialTLBackingMemory extends Config((site, here, up) => {
+  case ExtMem => None
+})
 
 class WithTapeoutSingleClock(freqMHz: Int) extends Config(
   new chipyard.clocking.WithSingleClockBroadcastClockGenerator(freqMHz) ++
