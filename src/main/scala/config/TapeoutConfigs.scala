@@ -13,7 +13,6 @@ class TapeoutConfig extends Config(
   new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithTapeoutRocket ++
   new testchipip.soc.WithNoScratchpads ++
-  new chipyard.clocking.WithNdmResetInSystemReset ++
   new WithTapeoutSingleClock(100) ++
   new chipyard.harness.WithSimTSIOverSerialTL(fast = true) ++
   new chipyard.harness.WithSimI2CEepromOnPads ++
