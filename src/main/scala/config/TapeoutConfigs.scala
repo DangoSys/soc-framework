@@ -1,43 +1,21 @@
 package chipyard
 
 import org.chipsalliance.cde.config.Config
-import freechips.rocketchip.subsystem.{ExtMem, MBUS}
+import freechips.rocketchip.devices.tilelink.{BootROMLocated, BootROMParams}
+import freechips.rocketchip.subsystem.{ExtMem, InSubsystem, MBUS}
 
-/**
- * Tapeout target based on the current chip-like Rocket configuration.
- *
- * Uses generic IO cells (inherited from AbstractConfig) and attaches a
- * behavioral I2C EEPROM at the physical pads in simulation.
- */
-class TapeoutConfig extends Config(
-  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
-  new WithTapeoutRocket ++
-  new testchipip.soc.WithNoScratchpads ++
-  new WithTapeoutSingleClock(100) ++
-  new chipyard.harness.WithSimTSIOverSerialTL(fast = true) ++
-  new chipyard.harness.WithSimI2CEepromOnPads ++
-  new WithSerialConnect ++
-  new chipyard.iobinders.WithSPIIOCells ++
-  new chipyard.iobinders.WithSimI2CIOCells ++
-  new chipyard.config.WithUART(
-    baudrate = 115200,
-    address = 0x10020000,
-    txEntries = 8,
-    rxEntries = 8) ++
-  new chipyard.config.WithNoUART ++
-  new chipyard.config.WithSPI(address = 0x10031000) ++
-  new chipyard.config.WithI2C(address = 0x10040000) ++
-  new chipyard.config.WithGPIO(address = 0x10010000, width = 8) ++
-  new chipyard.config.AbstractConfig)
-
-/**
- * TapeoutConfig with pad-connected SPI flash and I2C EEPROM simulation models.
- * SPI flash requires +spiflash0=; the I2C EEPROM is preloaded with byte[i] = i.
- */
-class TapeoutSimConfig extends Config(
-  new chipyard.harness.WithSimSPIFlashOnPads ++
-  new chipyard.iobinders.WithSimSPIIOCells ++
-  new TapeoutConfig)
+class WithTapeoutBootROM
+    extends Config((site, here, up) => {
+      case BootROMLocated(InSubsystem) =>
+        Seq(
+          BootROMParams(
+            size = 0x2000,
+            contentFileName = freechips.rocketchip.util.SystemFileName(
+              "src/main/resources/bootrom/bare/bootrom.rv64.img"
+            )
+          )
+        )
+    })
 
 class WithTapeoutRocket extends Config(
   new freechips.rocketchip.rocket.WithL1ICacheSets(64) ++
@@ -70,3 +48,29 @@ class WithTapeoutSingleClock(freqMHz: Int) extends Config(
   new chipyard.harness.WithHarnessBinderClockFreqMHz(freqMHz.toDouble) ++
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator
 )
+
+class TapeoutConfig extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+  new WithTapeoutRocket ++
+  new testchipip.soc.WithNoScratchpads ++
+  new WithTapeoutSingleClock(100) ++
+  new chipyard.harness.WithSimTSIOverSerialTL(fast = true) ++
+  new chipyard.harness.WithSimI2CEepromOnPads ++
+  new WithSerialConnect ++
+  new chipyard.iobinders.WithSPIIOCells ++
+  new chipyard.iobinders.WithSimI2CIOCells ++
+  new chipyard.config.WithUART(
+    baudrate = 115200,
+    address = 0x10020000,
+    txEntries = 8,
+    rxEntries = 8) ++
+  new chipyard.config.WithNoUART ++
+  new chipyard.config.WithSPI(address = 0x10031000) ++
+  new chipyard.config.WithI2C(address = 0x10040000) ++
+  new chipyard.config.WithGPIO(address = 0x10010000, width = 8) ++
+  new chipyard.config.AbstractConfig)
+
+class TapeoutSimConfig extends Config(
+  new chipyard.harness.WithSimSPIFlashOnPads ++
+  new chipyard.iobinders.WithSimSPIIOCells ++
+  new TapeoutConfig)
