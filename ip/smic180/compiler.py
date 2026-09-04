@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -72,6 +73,9 @@ def generate_smic180_sram_dbs(geoms, corner, cache_dir, lc_shell):
     env = None
 
     for g in sorted(geoms, key=lambda x: x.name):
+        if not isinstance(g.bitwrite, bool):
+            raise RuntimeError(f"sram geom {g.name}: bitwrite must be bool, got {g.bitwrite!r}")
+
         leaf = cache_dir / g.name
         v = leaf / f"{g.name}.v"
         lib = leaf / f"{g.name}_{tag}.lib"
@@ -88,27 +92,29 @@ def generate_smic180_sram_dbs(geoms, corner, cache_dir, lc_shell):
                 env["DISPLAY"] = display
                 env["JAVA_HOME"] = str(Path(java).resolve().parent.parent)
             leaf.mkdir(parents=True, exist_ok=True)
+            args = [
+                java,
+                "-Djava.awt.headless=false",
+                "-jar",
+                str(JAR),
+                "-instname",
+                g.name,
+                "-words",
+                str(g.words),
+                "-mux",
+                str(g.mux),
+                "-bits",
+                str(g.bits),
+                "-v",
+                "-lib",
+                "-lef",
+                "-cdl",
+            ]
+            if g.bitwrite:
+                args.append("-bitwrite")
+            args += ["-savepath", str(leaf)]
             r = subprocess.run(
-                [
-                    java,
-                    "-Djava.awt.headless=false",
-                    "-jar",
-                    str(JAR),
-                    "-instname",
-                    g.name,
-                    "-words",
-                    str(g.words),
-                    "-mux",
-                    str(g.mux),
-                    "-bits",
-                    str(g.bits),
-                    "-v",
-                    "-lib",
-                    "-lef",
-                    "-cdl",
-                    "-savepath",
-                    str(leaf),
-                ],
+                args,
                 cwd=str(CDK),
                 env=env,
                 capture_output=True,
@@ -120,6 +126,16 @@ def generate_smic180_sram_dbs(geoms, corner, cache_dir, lc_shell):
                 raise RuntimeError(
                     f"S018SP produced no v/lib ({g.name}): {v} {lib}\n{r.stdout}\n{r.stderr}"
                 )
+
+        has_bwen = bool(re.search(r"\bBWEN\b", v.read_text()))
+        if g.bitwrite and not has_bwen:
+            raise RuntimeError(
+                f"S018SP {g.name}: bitwrite requested but {v} has no BWEN; delete {leaf} and regenerate"
+            )
+        if not g.bitwrite and has_bwen:
+            raise RuntimeError(
+                f"S018SP {g.name}: bitwrite off but {v} has BWEN; delete {leaf} and regenerate"
+            )
 
         if not db.is_file():
             if not lib.is_file():
